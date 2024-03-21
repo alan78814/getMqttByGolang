@@ -2,9 +2,11 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -13,7 +15,40 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-var oneMinDataMap = make(map[string][]string)
+var oneMinDataMap = make(map[string]map[string][]string)
+
+func getChargingPileIdAndKind(topic string) (string, error) {
+	// topic範例"EZ01/device/總表用電101" 用/區分取第三個
+	topicSeparate := strings.Split(topic, "/")
+	needTopicWordRune := []rune(topicSeparate[2])
+
+	if len(topicSeparate) >= 3 {
+		// 定義好topic前面四碼去掉後 為chargingPileId
+		chargingPileId := string(needTopicWordRune[4:])
+
+		if _, err := strconv.Atoi(chargingPileId); err == nil {
+			return chargingPileId, nil
+		} else {
+			return "", fmt.Errorf("invalid chargingPileId: %s", chargingPileId)
+		}
+	}
+	return "", errors.New("invalid topic")
+}
+
+func handleData(kind, topic, payload string) {
+	fmt.Printf("處理'%s'數據:%s, 時間:%s, topic:%s\n", kind, payload, time.Now().Format("2006-01-02 15:04:05"), topic)
+	chargingPileId, err := getChargingPileIdAndKind(topic)
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		if _, ok := oneMinDataMap[chargingPileId]; ok {
+			oneMinDataMap[chargingPileId][kind] = append(oneMinDataMap[chargingPileId][kind], payload)
+		} else {
+			oneMinDataMap[chargingPileId] = make(map[string][]string)
+			oneMinDataMap[chargingPileId][kind] = append(oneMinDataMap[chargingPileId][kind], payload)
+		}
+	}
+}
 
 func onMessageReceived(message MQTT.Message) {
 	topic := message.Topic()
@@ -21,54 +56,25 @@ func onMessageReceived(message MQTT.Message) {
 
 	switch {
 	case strings.Contains(topic, "電壓"):
-		fmt.Println("處理電壓數據", time.Now().Format("2006-01-02 15:04:05"))
-		if _, ok := oneMinDataMap[topic]; ok {
-			// fmt.Printf("主題 %s 存在於 oneMinDataMap 中\n", topic)
-			oneMinDataMap[topic] = append(oneMinDataMap[topic], payload)
-		} else {
-			// fmt.Printf("主題 %s 不存在於 oneMinDataMap 中\n", topic)
-			oneMinDataMap[topic] = make([]string, 0)
-		}
+		handleData("電壓", topic, payload)
 	case strings.Contains(topic, "電流"):
-		fmt.Println("處理電流數據", time.Now().Format("2006-01-02 15:04:05"))
-		if _, ok := oneMinDataMap[topic]; ok {
-			// fmt.Printf("主題 %s 存在於 oneMinDataMap 中\n", topic)
-			oneMinDataMap[topic] = append(oneMinDataMap[topic], payload)
-		} else {
-			// fmt.Printf("主題 %s 不存在於 oneMinDataMap 中\n", topic)
-			oneMinDataMap[topic] = make([]string, 0)
-		}
+		handleData("電流", topic, payload)
 	case strings.Contains(topic, "用電"):
-		fmt.Println("處理用電數據", time.Now().Format("2006-01-02 15:04:05"))
-		if _, ok := oneMinDataMap[topic]; ok {
-			// fmt.Printf("主題 %s 存在於 oneMinDataMap 中\n", topic)
-			oneMinDataMap[topic] = append(oneMinDataMap[topic], payload)
-		} else {
-			// fmt.Printf("主題 %s 不存在於 oneMinDataMap 中\n", topic)
-			oneMinDataMap[topic] = make([]string, 0)
-		}
+		handleData("用電", topic, payload)
 	default:
-		fmt.Println("其他數據不做處理", time.Now().Format("2006-01-02 15:04:05"))
+		fmt.Println("未定義主題不處理, 時間:", time.Now().Format("2006-01-02 15:04:05"), "topic:", topic)
 	}
-
 }
 
 func printOneMinDataMap() {
-	fmt.Println("Current oneMinDataMap content:")
 	currentTime := time.Now()
-
-	// for key, value := range oneMinDataMap {
-	// 	fmt.Printf("Key: %s, Value: %v\n", key, value)
-	// }
-
-	jsonData, err := json.MarshalIndent(oneMinDataMap, "", "    ")
+	jsonData, err := json.MarshalIndent(oneMinDataMap, "", "  ")
 	if err != nil {
-		fmt.Println("無法將資料轉換為 JSON 格式：", err)
+		fmt.Println("JSON marshal error:", err)
 		return
 	}
 
 	fmt.Println(string(jsonData))
-
 	fmt.Println("現在的時間是：", currentTime)
 	fmt.Printf("======================================")
 }
