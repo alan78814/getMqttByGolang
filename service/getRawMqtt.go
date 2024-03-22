@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	_ "github.com/joho/godotenv/autoload"
@@ -17,7 +17,16 @@ import (
 
 var oneMinDataMap = make(map[string]map[string][]string)
 
-func getChargingPileIdAndKind(topic string) (string, error) {
+func containsChinese(s string) bool {
+	for _, r := range s {
+		if unicode.Is(unicode.Han, r) {
+			return true
+		}
+	}
+	return false
+}
+
+func getChargingPileId(topic string) (string, error) {
 	// topic範例"EZ01/device/總表用電101" 用/區分取第三個
 	topicSeparate := strings.Split(topic, "/")
 	needTopicWordRune := []rune(topicSeparate[2])
@@ -26,20 +35,22 @@ func getChargingPileIdAndKind(topic string) (string, error) {
 		// 定義好topic前面四碼去掉後 為chargingPileId
 		chargingPileId := string(needTopicWordRune[4:])
 
-		if _, err := strconv.Atoi(chargingPileId); err == nil {
-			return chargingPileId, nil
+		if containsChinese(chargingPileId) {
+			errMsg := fmt.Sprintf("chargingPileId 解析後含有中文不處理, chargingPileId:%s", chargingPileId)
+			return "", errors.New(errMsg)
 		} else {
-			Logger.Error("invalid chargingPileId:", chargingPileId)
-			return "", err
+			return chargingPileId, nil
 		}
 	}
-	return "", errors.New("invalid topic")
+
+	errMsg := fmt.Sprintf("invalid topic:%s", topic)
+	return "", errors.New(errMsg)
 }
 
 func handleData(kind, topic, payload string) {
 	// log.Printf("處理'%s'數據:%s, 時間:%s, topic:%s\n", kind, payload, time.Now().Format("2006-01-02 15:04:05"), topic)
 	Logger.Info("處理", kind, "數據:", payload, " topic:", topic)
-	chargingPileId, err := getChargingPileIdAndKind(topic)
+	chargingPileId, err := getChargingPileId(topic)
 	if err != nil {
 		Logger.Error(err)
 	} else {
@@ -110,7 +121,7 @@ func GetRawMqttMain() {
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	fmt.Printf("已連接到 MQTT 代理，並訂閱了主題 %s\n", topic)
+	Logger.Info("已連接到 MQTT 代理,並訂閱了主題:", topic)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
