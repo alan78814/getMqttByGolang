@@ -81,16 +81,13 @@ func onMessageReceived(message MQTT.Message) {
 }
 
 func printOneMinDataMap() {
-	currentTime := time.Now()
 	jsonData, err := json.MarshalIndent(oneMinDataMap, "", "  ")
 	if err != nil {
 		fmt.Println("JSON marshal error:", err)
 		return
 	}
-
-	fmt.Println(string(jsonData))
-	fmt.Println("現在的時間是：", currentTime)
-	fmt.Printf("======================================")
+	Logger.Info("JSON data:", string(jsonData))
+	Logger.Info("======================================")
 }
 
 func GetRawMqttMain() {
