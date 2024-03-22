@@ -5,7 +5,7 @@ import "github.com/sirupsen/logrus"
 // 初始化 logger
 var Logger = logrus.New()
 
-func Init() {
+func InitLogger() {
 	Logger.SetLevel(logrus.InfoLevel)
 	Logger.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp:   true,

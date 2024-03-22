@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	service.Init()
+	service.InitLogger()
 	service.GetRawMqttMain()
 }
