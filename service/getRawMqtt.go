@@ -29,17 +29,19 @@ func getChargingPileIdAndKind(topic string) (string, error) {
 		if _, err := strconv.Atoi(chargingPileId); err == nil {
 			return chargingPileId, nil
 		} else {
-			return "", fmt.Errorf("invalid chargingPileId: %s", chargingPileId)
+			Logger.Error("invalid chargingPileId:", chargingPileId)
+			return "", err
 		}
 	}
 	return "", errors.New("invalid topic")
 }
 
 func handleData(kind, topic, payload string) {
-	fmt.Printf("處理'%s'數據:%s, 時間:%s, topic:%s\n", kind, payload, time.Now().Format("2006-01-02 15:04:05"), topic)
+	// log.Printf("處理'%s'數據:%s, 時間:%s, topic:%s\n", kind, payload, time.Now().Format("2006-01-02 15:04:05"), topic)
+	Logger.Info("處理", kind, "數據:", payload, " topic:", topic)
 	chargingPileId, err := getChargingPileIdAndKind(topic)
 	if err != nil {
-		fmt.Println("Error:", err)
+		Logger.Error(err)
 	} else {
 		if _, ok := oneMinDataMap[chargingPileId]; ok {
 			oneMinDataMap[chargingPileId][kind] = append(oneMinDataMap[chargingPileId][kind], payload)
@@ -62,7 +64,8 @@ func onMessageReceived(message MQTT.Message) {
 	case strings.Contains(topic, "用電"):
 		handleData("用電", topic, payload)
 	default:
-		fmt.Println("未定義主題不處理, 時間:", time.Now().Format("2006-01-02 15:04:05"), "topic:", topic)
+		Logger.Info("未定義主題不處理, topic:", topic)
+		// log.Printf("未定義主題不處理, 時間:%s, topic:%s\n", time.Now().Format("2006-01-02 15:04:05"), topic)
 	}
 }
 

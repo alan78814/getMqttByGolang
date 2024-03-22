@@ -1,11 +1,12 @@
 package main
 
 import (
-	service "goMqtt/service"
+	"goMqtt/service"
 
 	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
+	service.Init()
 	service.GetRawMqttMain()
 }

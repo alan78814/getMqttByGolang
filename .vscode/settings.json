@@ -1,3 +1,7 @@
 {
-  "cSpell.words": ["eztw", "MQTT"]
+  "cSpell.words": [
+    "eztw",
+    "logrus",
+    "MQTT"
+  ]
 }
