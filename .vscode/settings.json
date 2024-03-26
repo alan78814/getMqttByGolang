@@ -1,7 +1,10 @@
 {
   "cSpell.words": [
+    "chargingsystem",
+    "dbname",
     "eztw",
     "logrus",
-    "MQTT"
+    "MQTT",
+    "sslmode"
   ]
 }

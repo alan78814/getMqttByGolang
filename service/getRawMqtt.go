@@ -15,7 +15,14 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-var oneMinDataMap = make(map[string]map[string][]string)
+type ChargingData struct {
+	Voltage []string
+	Current []string
+	Energy  []string
+	Status  []string
+}
+
+var oneMinDataMap = make(map[string]ChargingData)
 
 func containsChinese(s string) bool {
 	for _, r := range s {
@@ -50,16 +57,32 @@ func getChargingPileId(topic string) (string, error) {
 func handleData(kind, topic, payload string) {
 	// log.Printf("處理'%s'數據:%s, 時間:%s, topic:%s\n", kind, payload, time.Now().Format("2006-01-02 15:04:05"), topic)
 	Logger.Info("處理", kind, "數據:", payload, " topic:", topic)
+
 	chargingPileId, err := getChargingPileId(topic)
 	if err != nil {
 		Logger.Error(err)
 	} else {
-		if _, ok := oneMinDataMap[chargingPileId]; ok {
-			oneMinDataMap[chargingPileId][kind] = append(oneMinDataMap[chargingPileId][kind], payload)
-		} else {
-			oneMinDataMap[chargingPileId] = make(map[string][]string)
-			oneMinDataMap[chargingPileId][kind] = append(oneMinDataMap[chargingPileId][kind], payload)
+		// 如果 oneMinDataMap[chargingPileId] 還未初始化，則初始化為空的 ChargingData struct
+		if _, ok := oneMinDataMap[chargingPileId]; !ok {
+			oneMinDataMap[chargingPileId] = ChargingData{}
 		}
+
+		// 取出 chargingData
+		chargingData := oneMinDataMap[chargingPileId]
+
+		// 根據 kind 將 payload 添加到對應的欄位中
+		switch kind {
+		case "Voltage":
+			chargingData.Voltage = append(chargingData.Voltage, payload)
+			HandleCurrentData("Voltage", topic, payload)
+		case "Current":
+			chargingData.Current = append(chargingData.Current, payload)
+		case "Energy":
+			chargingData.Energy = append(chargingData.Energy, payload)
+		}
+
+		// 將修改後的 chargingData 放回 map 中
+		oneMinDataMap[chargingPileId] = chargingData
 	}
 }
 
@@ -69,11 +92,11 @@ func onMessageReceived(message MQTT.Message) {
 
 	switch {
 	case strings.Contains(topic, "電壓"):
-		handleData("電壓", topic, payload)
+		handleData("Voltage", topic, payload)
 	case strings.Contains(topic, "電流"):
-		handleData("電流", topic, payload)
+		handleData("Current", topic, payload)
 	case strings.Contains(topic, "用電"):
-		handleData("用電", topic, payload)
+		handleData("Energy ", topic, payload)
 	default:
 		Logger.Info("未定義主題不處理, topic:", topic)
 		// log.Printf("未定義主題不處理, 時間:%s, topic:%s\n", time.Now().Format("2006-01-02 15:04:05"), topic)
@@ -111,12 +134,14 @@ func GetRawMqttMain() {
 	client := MQTT.NewClient(opts)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+		Logger.Error("Error connecting to MQTT broker:", token.Error())
+		return // 終止函式執行
 	}
 	defer client.Disconnect(250)
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+		Logger.Error("Error subscribing to MQTT topic:", token.Error())
+		return // 終止函式執行
 	}
 	Logger.Info("已連接到 MQTT 代理,並訂閱了主題:", topic)
 
