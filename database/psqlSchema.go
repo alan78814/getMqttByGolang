@@ -1,6 +1,7 @@
 package models
 
 type ChargingPile struct {
-	ID     int
-	Energy float64
+	Id      int
+	Mqtt_id int
+	Energy  float64
 }
