@@ -70,15 +70,19 @@ func handleData(kind, topic, payload string) {
 		// 取出 chargingData
 		chargingData := oneMinDataMap[chargingPileId]
 
-		// 根據 kind 將 payload 添加到對應的欄位中
+		// 根據 kind 將 payload 添加到ㄇ對應的欄位中
 		switch kind {
 		case "Voltage":
 			chargingData.Voltage = append(chargingData.Voltage, payload)
-			HandleCurrentData("Voltage", topic, payload)
+			VoltageDataProcessing("Voltage", topic, payload)
 		case "Current":
 			chargingData.Current = append(chargingData.Current, payload)
+			CurrentDataProcessing("Current", topic, payload)
 		case "Energy":
 			chargingData.Energy = append(chargingData.Energy, payload)
+			EnergyDataProcessing("Energy", topic, payload)
+		default:
+			Logger.Info("未定義種類不處理, kind:", kind)
 		}
 
 		// 將修改後的 chargingData 放回 map 中
@@ -99,7 +103,6 @@ func onMessageReceived(message MQTT.Message) {
 		handleData("Energy ", topic, payload)
 	default:
 		Logger.Info("未定義主題不處理, topic:", topic)
-		// log.Printf("未定義主題不處理, 時間:%s, topic:%s\n", time.Now().Format("2006-01-02 15:04:05"), topic)
 	}
 }
 

@@ -1,7 +1,6 @@
 package service
 
-func HandleCurrentData(kind, topic, payload string) {
-
+func VoltageDataProcessing(kind, topic, payload string) {
 	// rows, err := db.Query("SELECT * FROM users")
 	// if err != nil {
 	// 	panic(err)
@@ -14,4 +13,10 @@ func HandleCurrentData(kind, topic, payload string) {
 	// 	fmt.Printf("ID: %d, Name: %s, Age: %s\n", user.ID, user.Username, user.Password)
 	// }
 	// defer rows.Close()
+}
+
+func CurrentDataProcessing(kind, topic, payload string) {
+}
+
+func EnergyDataProcessing(kind, topic, payload string) {
 }
