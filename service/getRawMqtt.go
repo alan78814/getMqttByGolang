@@ -121,30 +121,18 @@ func GetRawMqttMain() {
 	password := os.Getenv("PASSWORD")
 	clientId := os.Getenv("CLIENT_ID")
 	topic := "EZ01/device/#"
-	broker := "ws://192.168.0.208:11883/ws"
+	broker := "ws://192.168.0.208:11883s/ws"
 	// broker := "ws://eztw.in:6190/ws"
 
-	opts := MQTT.NewClientOptions().
-		AddBroker(broker).
-		SetUsername(userName).
-		SetPassword(password).
-		SetClientID(clientId).
-		SetKeepAlive(2 * time.Second).
-		SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
-			onMessageReceived(msg)
-		})
-
-	client := MQTT.NewClient(opts)
-
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		Logger.Error("Error connecting to MQTT broker:", token.Error())
-		return // 終止函式執行
+	client, err := NewClient(broker, userName, password, clientId, onMessageReceived)
+	if err != nil {
+		Logger.Error("Error for get newClient:", err)
+		return
 	}
-	defer client.Disconnect(250)
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
 		Logger.Error("Error subscribing to MQTT topic:", token.Error())
-		return // 終止函式執行
+		return
 	}
 	Logger.Info("已連接到 MQTT 代理,並訂閱了主題:", topic)
 
@@ -170,4 +158,6 @@ func GetRawMqttMain() {
 	<-sig
 
 	fmt.Println("接收到結束信號，程序退出")
+
+	defer client.Disconnect(250)
 }
