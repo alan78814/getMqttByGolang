@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	models "goMqtt/database"
 )
 
@@ -11,13 +10,51 @@ func VoltageDataProcessing(kind, topic, payload string) {
 	if err != nil {
 		Logger.Error(err)
 	} else {
-		for rows.Next() {
-			var chargingPile models.ChargingPile
-			if err := rows.Scan(&chargingPile.Id, &chargingPile.Mqtt_id, &chargingPile.Energy); err != nil {
-				Logger.Error(err)
+		chargingPileId, err := getChargingPileId(topic)
+		if err != nil {
+			Logger.Error(err)
+		} else {
+			if _, ok := oneMinDataMap[chargingPileId]; ok {
+				chargingData := oneMinDataMap[chargingPileId]
+
+				if lastStatus := chargingData.Status; len(lastStatus) > 0 {
+					lastStatus := lastStatus[len(lastStatus)-1]
+
+					switch lastStatus {
+					case "standby":
+						newStatus := "standby"
+						chargingData.Status = append(chargingData.Status, newStatus)
+						oneMinDataMap[chargingPileId] = chargingData
+					case "charging":
+						newStatus := "charging"
+						chargingData.Status = append(chargingData.Status, newStatus)
+						oneMinDataMap[chargingPileId] = chargingData
+					default:
+						newStatus := "standby"
+						chargingData.Status = append(chargingData.Status, newStatus)
+						oneMinDataMap[chargingPileId] = chargingData
+					}
+				} else {
+					// 数组为空，处理空数组的情况
+				}
+
 			}
-			fmt.Printf("Id:%d, Mqtt_id:%d, Energy:%f\n", chargingPile.Id, chargingPile.Mqtt_id, chargingPile.Energy)
 		}
+
+		// for rows.Next() {
+		// 	var chargingPile models.ChargingPile
+		// 	if err := rows.Scan(&chargingPile.Id, &chargingPile.Mqtt_id, &chargingPile.Energy); err != nil {
+		// 		Logger.Error(err)
+		// 	}
+		// 	fmt.Printf("Id:%d, Mqtt_id:%d, Energy:%f\n", chargingPile.Id, chargingPile.Mqtt_id, chargingPile.Energy)
+		// 	/*
+		// 		收到電壓訊號 表示此台電表狀態是 standby 或是 charging (charging讓電流控制) 去和 oneMinDataMap的Status最後一筆去比
+		// 		1.非 standby or charging => new status = standby
+		// 		2.standby  => new status = standby
+		// 		3.charging => new status = charging
+		// 		4.
+		// 	*/
+		// }
 		defer rows.Close()
 	}
 }

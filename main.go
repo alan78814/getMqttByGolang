@@ -11,6 +11,7 @@ func main() {
 	models.InitDB()
 	defer models.CloseDB()
 
+	input := service.GetUserInput()
 	service.InitLogger()
-	service.GetRawMqttMain()
+	service.GetRawMqttMain(input)
 }

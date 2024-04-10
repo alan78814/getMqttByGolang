@@ -56,7 +56,7 @@ func getChargingPileId(topic string) (string, error) {
 
 func handleData(kind, topic, payload string) {
 	// log.Printf("處理'%s'數據:%s, 時間:%s, topic:%s\n", kind, payload, time.Now().Format("2006-01-02 15:04:05"), topic)
-	Logger.Info("處理", kind, "數據:", payload, " topic:", topic)
+	Logger.Info("處理", kind, "數據:", payload, ", topic:", topic)
 
 	chargingPileId, err := getChargingPileId(topic)
 	if err != nil {
@@ -90,19 +90,27 @@ func handleData(kind, topic, payload string) {
 	}
 }
 
-func onMessageReceived(message MQTT.Message) {
+func onMessageReceived(message MQTT.Message, input string) {
 	topic := message.Topic()
 	payload := string(message.Payload())
 
 	switch {
-	case strings.Contains(topic, "電壓"):
+	case input == "電壓" && strings.Contains(topic, "電壓"):
 		handleData("Voltage", topic, payload)
-	case strings.Contains(topic, "電流"):
+	case input == "電流" && strings.Contains(topic, "電流"):
 		handleData("Current", topic, payload)
-	case strings.Contains(topic, "用電"):
+	case input == "用電" && strings.Contains(topic, "用電"):
 		handleData("Energy ", topic, payload)
+	case input == "全部":
+		if strings.Contains(topic, "電壓") {
+			handleData("Voltage", topic, payload)
+		} else if strings.Contains(topic, "電流") {
+			handleData("Current", topic, payload)
+		} else if strings.Contains(topic, "電流") {
+			handleData("Energy ", topic, payload)
+		}
 	default:
-		Logger.Info("未定義主題不處理, topic:", topic)
+		Logger.Info("輸入參數:", input, "與topic不合不處理, topic:", topic)
 	}
 }
 
@@ -116,17 +124,20 @@ func printOneMinDataMap() {
 	Logger.Info("======================================")
 }
 
-func GetRawMqttMain() {
+func GetRawMqttMain(input string) {
 	userName := os.Getenv("USERNAME")
 	password := os.Getenv("PASSWORD")
 	clientId := os.Getenv("CLIENT_ID")
 	topic := "EZ01/device/#"
-	broker := "ws://192.168.0.208:11883s/ws"
+	broker := "ws://192.168.0.208:11883/ws"
 	// broker := "ws://eztw.in:6190/ws"
 
-	client, err := NewClient(broker, userName, password, clientId, onMessageReceived)
+	client, err := NewClient(broker, userName, password, clientId, func(message MQTT.Message) {
+		// 在匿名函数内部创建闭包，调用 onMessageReceived 函数并传递额外的参数 input
+		onMessageReceived(message, input)
+	})
 	if err != nil {
-		Logger.Error("Error for get newClient:", err)
+		Logger.Error("Error get newClient:", err)
 		return
 	}
 
