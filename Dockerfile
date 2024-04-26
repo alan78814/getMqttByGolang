@@ -1,6 +1,20 @@
-FROM golang:alpine
+
+FROM golang:alpine AS builder
+
 ENV TZ=Asia/Taipei
-COPY . /go
+
 WORKDIR /go
+
+COPY . .
+
 RUN go build -o myapp
+
+FROM scratch
+
+ENV TZ=Asia/Taipei
+
+WORKDIR /app
+
+COPY --from=builder /go/myapp .
+
 CMD ["./myapp"]
