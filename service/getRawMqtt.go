@@ -22,7 +22,7 @@ type ChargingData struct {
 	Status  []string
 }
 
-var oneMinDataMap = make(map[string]ChargingData)
+var OneMinDataMap = make(map[string]ChargingData)
 
 func containsChinese(s string) bool {
 	for _, r := range s {
@@ -62,13 +62,13 @@ func handleData(kind, topic, payload string) {
 	if err != nil {
 		Logger.Error(err)
 	} else {
-		// 如果 oneMinDataMap[chargingPileId] 還未初始化，則初始化為空的 ChargingData struct
-		if _, ok := oneMinDataMap[chargingPileId]; !ok {
-			oneMinDataMap[chargingPileId] = ChargingData{}
+		// 如果 OneMinDataMap[chargingPileId] 還未初始化，則初始化為空的 ChargingData struct
+		if _, ok := OneMinDataMap[chargingPileId]; !ok {
+			OneMinDataMap[chargingPileId] = ChargingData{}
 		}
 
 		// 取出 chargingData
-		chargingData := oneMinDataMap[chargingPileId]
+		chargingData := OneMinDataMap[chargingPileId]
 
 		// 根據 kind 將 payload 添加到ㄇ對應的欄位中
 		switch kind {
@@ -86,7 +86,7 @@ func handleData(kind, topic, payload string) {
 		}
 
 		// 將修改後的 chargingData 放回 map 中
-		oneMinDataMap[chargingPileId] = chargingData
+		OneMinDataMap[chargingPileId] = chargingData
 	}
 }
 
@@ -115,7 +115,7 @@ func onMessageReceived(message MQTT.Message, input string) {
 }
 
 func printOneMinDataMap() {
-	jsonData, err := json.MarshalIndent(oneMinDataMap, "", "  ")
+	jsonData, err := json.MarshalIndent(OneMinDataMap, "", "  ")
 	if err != nil {
 		fmt.Println("JSON marshal error:", err)
 		return
@@ -150,7 +150,7 @@ func GetRawMqttMain(input string) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
-	// 建立定時器，每一分鐘觸發一次印出 oneMinDataMap 的操作
+	// 建立定時器，每一分鐘觸發一次印出 OneMinDataMap 的操作
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 

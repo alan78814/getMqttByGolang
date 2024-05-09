@@ -14,8 +14,8 @@ func VoltageDataProcessing(kind, topic, payload string) {
 		if err != nil {
 			Logger.Error(err)
 		} else {
-			if _, ok := oneMinDataMap[chargingPileId]; ok {
-				chargingData := oneMinDataMap[chargingPileId]
+			if _, ok := OneMinDataMap[chargingPileId]; ok {
+				chargingData := OneMinDataMap[chargingPileId]
 
 				if lastStatus := chargingData.Status; len(lastStatus) > 0 {
 					lastStatus := lastStatus[len(lastStatus)-1]
@@ -24,15 +24,15 @@ func VoltageDataProcessing(kind, topic, payload string) {
 					case "standby":
 						newStatus := "standby"
 						chargingData.Status = append(chargingData.Status, newStatus)
-						oneMinDataMap[chargingPileId] = chargingData
+						OneMinDataMap[chargingPileId] = chargingData
 					case "charging":
 						newStatus := "charging"
 						chargingData.Status = append(chargingData.Status, newStatus)
-						oneMinDataMap[chargingPileId] = chargingData
+						OneMinDataMap[chargingPileId] = chargingData
 					default:
 						newStatus := "standby"
 						chargingData.Status = append(chargingData.Status, newStatus)
-						oneMinDataMap[chargingPileId] = chargingData
+						OneMinDataMap[chargingPileId] = chargingData
 					}
 				} else {
 					// 数组为空，处理空数组的情况
@@ -48,7 +48,7 @@ func VoltageDataProcessing(kind, topic, payload string) {
 		// 	}
 		// 	fmt.Printf("Id:%d, Mqtt_id:%d, Energy:%f\n", chargingPile.Id, chargingPile.Mqtt_id, chargingPile.Energy)
 		// 	/*
-		// 		收到電壓訊號 表示此台電表狀態是 standby 或是 charging (charging讓電流控制) 去和 oneMinDataMap的Status最後一筆去比
+		// 		收到電壓訊號 表示此台電表狀態是 standby 或是 charging (charging讓電流控制) 去和 OneMinDataMap的Status最後一筆去比
 		// 		1.非 standby or charging => new status = standby
 		// 		2.standby  => new status = standby
 		// 		3.charging => new status = charging
