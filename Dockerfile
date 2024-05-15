@@ -15,12 +15,14 @@ RUN go build \
   -tags netgo \
   -o myapp
 
-FROM scratch
+FROM alpine:3.18
 
 ENV TZ=Asia/Taipei
 
 WORKDIR /
 
 COPY --from=build /app/myapp myapp
+
+EXPOSE 8080
 
 CMD ["/myapp"]

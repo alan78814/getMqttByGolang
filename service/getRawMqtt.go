@@ -39,15 +39,19 @@ func getChargingPileId(topic string) (string, error) {
 	needTopicWordRune := []rune(topicSeparate[2])
 
 	if len(topicSeparate) >= 3 {
-		// 定義好topic前面四碼去掉後 為chargingPileId
-		chargingPileId := string(needTopicWordRune[4:])
+		// // 定義好topic前面四碼去掉後 為chargingPileId
+		// chargingPileId := string(needTopicWordRune[4:])
 
-		if containsChinese(chargingPileId) {
-			errMsg := fmt.Sprintf("chargingPileId 解析後含有中文不處理, chargingPileId:%s", chargingPileId)
-			return "", errors.New(errMsg)
-		} else {
-			return chargingPileId, nil
-		}
+		// if containsChinese(chargingPileId) {
+		// 	errMsg := fmt.Sprintf("chargingPileId 解析後含有中文不處理, chargingPileId:%s", chargingPileId)
+		// 	return "", errors.New(errMsg)
+		// } else {
+		// 	return chargingPileId, nil
+		// }
+
+		// 205定義好topic去掉最後2碼 為chargingPileId
+		chargingPileId := string(needTopicWordRune[:len(needTopicWordRune)-2])
+		return chargingPileId, nil
 	}
 
 	errMsg := fmt.Sprintf("invalid topic:%s", topic)
@@ -74,13 +78,13 @@ func handleData(kind, topic, payload string) {
 		switch kind {
 		case "Voltage":
 			chargingData.Voltage = append(chargingData.Voltage, payload)
-			VoltageDataProcessing("Voltage", topic, payload)
+			// VoltageDataProcessing("Voltage", topic, payload)
 		case "Current":
 			chargingData.Current = append(chargingData.Current, payload)
-			CurrentDataProcessing("Current", topic, payload)
+			// CurrentDataProcessing("Current", topic, payload)
 		case "Energy":
 			chargingData.Energy = append(chargingData.Energy, payload)
-			EnergyDataProcessing("Energy", topic, payload)
+			// EnergyDataProcessing("Energy", topic, payload)
 		default:
 			Logger.Info("未定義種類不處理, kind:", kind)
 		}
@@ -99,15 +103,15 @@ func onMessageReceived(message MQTT.Message, input string) {
 		handleData("Voltage", topic, payload)
 	case input == "電流" && strings.Contains(topic, "電流"):
 		handleData("Current", topic, payload)
-	case input == "用電" && strings.Contains(topic, "用電"):
+	case input == "用電" && (strings.Contains(topic, "用電") || strings.Contains(topic, "總電")):
 		handleData("Energy ", topic, payload)
 	case input == "全部":
 		if strings.Contains(topic, "電壓") {
 			handleData("Voltage", topic, payload)
 		} else if strings.Contains(topic, "電流") {
 			handleData("Current", topic, payload)
-		} else if strings.Contains(topic, "電流") {
-			handleData("Energy ", topic, payload)
+		} else if strings.Contains(topic, "用電") || strings.Contains(topic, "總電") {
+			handleData("Energy", topic, payload)
 		}
 	default:
 		Logger.Info("輸入參數:", input, "與topic不合不處理, topic:", topic)
@@ -129,7 +133,8 @@ func GetRawMqttMain(input string) {
 	password := os.Getenv("PASSWORD")
 	clientId := os.Getenv("CLIENT_ID")
 	topic := "EZ01/device/#"
-	broker := "ws://192.168.0.208:11883/ws"
+	broker := "wss://ehome.ezcon.com.tw:443/ws"
+	// broker := "ws://192.168.0.205:11883/ws"
 	// broker := "ws://eztw.in:6190/ws"
 
 	client, err := NewClient(broker, userName, password, clientId, func(message MQTT.Message) {

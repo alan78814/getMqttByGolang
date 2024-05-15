@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  elemeter:
+    image: gomqtt6
+    env_file: .env
+    stdin_open: true
+    tty: true
+
+#使用docker-compose run elemeter /myapp啟動
